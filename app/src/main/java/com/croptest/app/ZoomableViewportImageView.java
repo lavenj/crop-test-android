@@ -272,40 +272,45 @@ public class ZoomableViewportImageView extends ImageView {
 
 	public void snapMatrixToBounds(Matrix m) {
 		ImageView mSinglePageView = this;
-		float mScreenWidth = 1080;
-		float mScreenHeight = 1920;
-
+		float snapBoxWidth = mViewport.width();
+		float snapBoxHeight = mViewport.height();
 		float[] v = new float[9];
 		m.getValues(v);
-		float finalX = v[Matrix.MTRANS_X] + mSinglePageView.getPaddingLeft(); // remove padding from our calculations
-		float finalY = v[Matrix.MTRANS_Y] + mSinglePageView.getPaddingTop();
+		float finalLeftX = v[Matrix.MTRANS_X] + mSinglePageView.getPaddingLeft(); // remove padding from our calculations
+		float finalTopY = v[Matrix.MTRANS_Y] + mSinglePageView.getPaddingTop() ;
 		float finalScaleFactor = v[Matrix.MSCALE_X];
 		float pixelWidth = bmWidth * finalScaleFactor;
 		float pixelHeight = bmHeight * finalScaleFactor;
-		float finalRightX = finalX + pixelWidth;
-		float finalBottomY = finalY + pixelHeight;
+		float finalRightX = finalLeftX + pixelWidth;
+		float finalBottomY = finalTopY + pixelHeight;
 
 		// adjusted x coordinate
-		float slopX = 125f;
-		float slopY = 125f;
+		float slopX = 0f;
+		float slopY = mViewport.top;
 
 		// no need for slop to be bigger than # of extra pixels
-		if (pixelWidth - mScreenWidth < slopX) {
-			slopX = pixelWidth - mScreenWidth;
+		if (pixelWidth - snapBoxWidth < slopX) {
+			slopX = pixelWidth - snapBoxWidth;
 		}
-		if (pixelHeight - mScreenHeight < slopY) {
-			slopY = pixelHeight - mScreenHeight;
+		if (pixelHeight - snapBoxHeight < slopY) {
+			slopY = pixelHeight - snapBoxHeight;
 		}
 
-		float leftMargin = finalX;
-		float topMargin = finalY;
-		float rightMargin = mScreenWidth - finalRightX;
-		float bottomMargin = mScreenHeight - finalBottomY;
+		Log.v(TAG, "snapBox: " + snapBoxWidth + ", " + snapBoxHeight);
+		Log.v(TAG, "slop: " + slopX + ", " + slopY);
+		Log.v(TAG, "finalCoords: " + finalLeftX + ", " + finalTopY + "; " + finalRightX + ", " + finalBottomY);
+
+		float leftMargin = finalLeftX;
+		float topMargin = finalTopY;
+		float rightMargin = snapBoxWidth - finalRightX;
+		float bottomMargin = snapBoxHeight - finalBottomY;
 
 		float newTopMargin = topMargin;
 		float newBottomMargin = bottomMargin;
 		float newLeftMargin = leftMargin;
 		float newRightMargin = rightMargin;
+
+		Log.v(TAG, "margins: " + leftMargin + ", " + topMargin + ", " + rightMargin + ", " + bottomMargin);
 
 		// if topMargin is too big, snap it to slop
 		if (topMargin > slopY) {
@@ -351,12 +356,14 @@ public class ZoomableViewportImageView extends ImageView {
 			}
 		}
 
-		finalY = newTopMargin;
-		finalX = newLeftMargin;
+		Log.v(TAG, "newMargins: " + newLeftMargin + ", " + newTopMargin + ", " + newRightMargin + ", " + newBottomMargin);
 
-		finalX -= mSinglePageView.getPaddingLeft();
-		finalY -= mSinglePageView.getPaddingTop();
-		m.setTranslate(finalX, finalY);
+		finalTopY = newTopMargin;
+		finalLeftX = newLeftMargin;
+
+		finalLeftX -= mSinglePageView.getPaddingLeft();
+		finalTopY -= mSinglePageView.getPaddingTop();
+		m.setTranslate(finalLeftX, finalTopY);
 		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
 	}
 
