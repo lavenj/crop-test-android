@@ -272,10 +272,14 @@ public class ZoomableViewportImageView extends ImageView {
 
 	public void snapMatrixToBounds(Matrix m) {
 		ImageView mSinglePageView = this;
-		float snapBoxWidth = mViewport.width();
-		float snapBoxHeight = mViewport.height();
+		RectF snapBox = mViewport;
+
+//		float snapBoxWidth = mViewport.width();
+//		float snapBoxHeight = mViewport.height();
 		float[] v = new float[9];
 		m.getValues(v);
+		float originalTranslateX = v[Matrix.MTRANS_X];
+		float originalTranslateY = v[Matrix.MTRANS_Y];
 		float finalLeftX = v[Matrix.MTRANS_X] + mSinglePageView.getPaddingLeft(); // remove padding from our calculations
 		float finalTopY = v[Matrix.MTRANS_Y] + mSinglePageView.getPaddingTop() ;
 		float finalScaleFactor = v[Matrix.MSCALE_X];
@@ -283,27 +287,55 @@ public class ZoomableViewportImageView extends ImageView {
 		float pixelHeight = bmHeight * finalScaleFactor;
 		float finalRightX = finalLeftX + pixelWidth;
 		float finalBottomY = finalTopY + pixelHeight;
+		float adjustmentX = 0;
+		float adjustmentY = 0;
 
-		// adjusted x coordinate
-		float slopX = 0f;
-		float slopY = mViewport.top;
-
+		float slopX = 0;
+		float slopY = 0;
 		// no need for slop to be bigger than # of extra pixels
-		if (pixelWidth - snapBoxWidth < slopX) {
-			slopX = pixelWidth - snapBoxWidth;
+		if (pixelWidth - snapBox.width() < slopX) {
+			slopX = pixelWidth - snapBox.width();
 		}
-		if (pixelHeight - snapBoxHeight < slopY) {
-			slopY = pixelHeight - snapBoxHeight;
+		if (pixelHeight - snapBox.height() < slopY) {
+			slopY = pixelHeight - snapBox.height();
 		}
 
-		Log.v(TAG, "snapBox: " + snapBoxWidth + ", " + snapBoxHeight);
-		Log.v(TAG, "slop: " + slopX + ", " + slopY);
-		Log.v(TAG, "finalCoords: " + finalLeftX + ", " + finalTopY + "; " + finalRightX + ", " + finalBottomY);
+		RectF imageBox = new RectF(finalLeftX, finalTopY, finalRightX, finalBottomY);
+		snapBox = new RectF(snapBox.left+slopX, snapBox.top+slopY, snapBox.right-slopX, snapBox.bottom-slopY);
 
-		float leftMargin = finalLeftX;
-		float topMargin = finalTopY;
-		float rightMargin = snapBoxWidth - finalRightX;
-		float bottomMargin = snapBoxHeight - finalBottomY;
+		Log.v(TAG, "---");
+		Log.v(TAG, "snapBox: " + snapBox);
+//		Log.v(TAG, "original ")
+//		Log.v(TAG, "slop: " + slopX + ", " + slopY);
+		Log.v(TAG, "imageBox: " + imageBox);
+
+		if( imageBox.contains(snapBox)) {
+			Log.v(TAG, "No adjustment needed.");
+			return;
+		}
+
+		if( imageBox.top > snapBox.top ) {
+			adjustmentY = snapBox.top - imageBox.top;
+		}
+		else if( imageBox.bottom < snapBox.bottom ) {
+			adjustmentY = snapBox.bottom - imageBox.bottom;
+		}
+
+		if( imageBox.left > snapBox.left ) {
+			adjustmentX = snapBox.left - imageBox.left;
+		}
+		else if( imageBox.right < snapBox.right ) {
+			adjustmentX = snapBox.right - imageBox.right;
+		}
+		Log.v(TAG, "adjustment: " + adjustmentX + ", " + adjustmentY);
+		m.setTranslate(originalTranslateX+adjustmentX, originalTranslateY + adjustmentY);
+		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
+
+/*
+		float leftMargin = finalLeftX - snapBox.left;
+		float topMargin = finalTopY - snapBox.top;
+		float rightMargin = snapBox.right - finalRightX;
+		float bottomMargin = snapBox.bottom - finalBottomY;
 
 		float newTopMargin = topMargin;
 		float newBottomMargin = bottomMargin;
@@ -312,25 +344,29 @@ public class ZoomableViewportImageView extends ImageView {
 
 		Log.v(TAG, "margins: " + leftMargin + ", " + topMargin + ", " + rightMargin + ", " + bottomMargin);
 
-		// if topMargin is too big, snap it to slop
+		// if topMargin is too big, move it up
 		if (topMargin > slopY) {
-			newTopMargin = slopY;
+			adjustmentY = -topMargin;
+			newTopMargin = topMargin + adjustmentY;
 			// adjust our newBottomMargin too
-			newBottomMargin = bottomMargin + (topMargin - slopY);
+			newBottomMargin = bottomMargin + adjustmentY;
 			// if the newBottomMargin is now too far, split the difference
 			if (newBottomMargin > slopY) {
 				newTopMargin = (topMargin + bottomMargin) / 2;
 				newBottomMargin = (topMargin + bottomMargin) / 2;
+				adjustmentY = newTopMargin - topMargin;
 			}
 		}
 		else if (bottomMargin > slopY) {
 			// if bottomMargin is too big, move things down by how much it is too big by
-			newTopMargin = topMargin + (bottomMargin - slopY);
-			newBottomMargin = slopY;
+			adjustmentY = -bottomMargin;
+			newTopMargin = topMargin + adjustmentY;
+			newBottomMargin = bottomMargin + adjustmentY;
 			// if that makes topMargin too big, split the difference
 			if (newTopMargin > slopY) {
 				newTopMargin = (topMargin + bottomMargin) / 2;
 				newBottomMargin = (topMargin + bottomMargin) / 2;
+				adjustmentY = newTopMargin - topMargin;
 			}
 		}
 
@@ -346,7 +382,8 @@ public class ZoomableViewportImageView extends ImageView {
 			}
 		}
 		else if (rightMargin > slopX) {
-			// if rightMargin is too big, move things down by how much it is too big by
+			// if rightMargin is too big, move things right by how much it is too big by
+//			offsetRight = rightMargin - slopX
 			newLeftMargin = leftMargin + (rightMargin - slopX);
 			newRightMargin = slopX;
 			// if that makes leftMargin too big, split the difference
@@ -358,13 +395,14 @@ public class ZoomableViewportImageView extends ImageView {
 
 		Log.v(TAG, "newMargins: " + newLeftMargin + ", " + newTopMargin + ", " + newRightMargin + ", " + newBottomMargin);
 
+
 		finalTopY = newTopMargin;
 		finalLeftX = newLeftMargin;
 
 		finalLeftX -= mSinglePageView.getPaddingLeft();
 		finalTopY -= mSinglePageView.getPaddingTop();
-		m.setTranslate(finalLeftX, finalTopY);
-		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
+//		Log.v(TAG, "finalCoords: " + finalLeftX + ", " + finalTopY);
+*/
 	}
 
 	public void restoreMatrix(Matrix matrix) {
