@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -213,7 +214,7 @@ public class ZoomableViewportImageView extends ImageView {
 		float scale;
 		float scaleX = mViewport.width() / bmWidth;
 		float scaleY = mViewport.height() / bmHeight;
-		scale = Math.min(scaleX, scaleY);
+		scale = Math.max(scaleX, scaleY);
 		matrix.setScale(scale, scale);
 		setImageMatrix(matrix);
 		saveScale = 1f;
@@ -303,14 +304,14 @@ public class ZoomableViewportImageView extends ImageView {
 		RectF imageBox = new RectF(finalLeftX, finalTopY, finalRightX, finalBottomY);
 		snapBox = new RectF(snapBox.left+slopX, snapBox.top+slopY, snapBox.right-slopX, snapBox.bottom-slopY);
 
-		Log.v(TAG, "---");
-		Log.v(TAG, "snapBox: " + snapBox);
+//		Log.v(TAG, "---");
+//		Log.v(TAG, "snapBox: " + snapBox);
 //		Log.v(TAG, "original ")
 //		Log.v(TAG, "slop: " + slopX + ", " + slopY);
-		Log.v(TAG, "imageBox: " + imageBox);
+//		Log.v(TAG, "imageBox: " + imageBox);
 
 		if( imageBox.contains(snapBox)) {
-			Log.v(TAG, "Entirely contained; No adjustment needed.");
+//			Log.v(TAG, "Entirely contained; No adjustment needed.");
 			return;
 		}
 
@@ -318,7 +319,7 @@ public class ZoomableViewportImageView extends ImageView {
 		//if top and bottom are both in bounds (ie the image is smaller than the box, center us vertically
 		if( imageBox.top > snapBox.top && imageBox.bottom < snapBox.bottom ) {
 			adjustmentY = snapBox.centerY() - imageBox.centerY();
-			Log.v(TAG, "Centering on Y axis.");
+//			Log.v(TAG, "Centering on Y axis.");
 		}
 		else if( imageBox.top > snapBox.top ) {
 			adjustmentY = snapBox.top - imageBox.top;
@@ -330,7 +331,7 @@ public class ZoomableViewportImageView extends ImageView {
 		//if left and right are both in bounds (ie the image is smaller than the box), center us horizontally
 		if( imageBox.left > snapBox.left && imageBox.right < snapBox.right ) {
 			adjustmentX = snapBox.centerX() - imageBox.centerX();
-			Log.v(TAG, "Centering on X axis.");
+//			Log.v(TAG, "Centering on X axis.");
 		}
 		else if( imageBox.left > snapBox.left ) {
 			//if we are too far to the right, move us left
@@ -342,12 +343,46 @@ public class ZoomableViewportImageView extends ImageView {
 			float leftOverflow = snapBox.left - imageBox.left;
 			adjustmentX = Math.min(snapBox.right - imageBox.right, leftOverflow);
 		}
-		Log.v(TAG, "adjustment: " + adjustmentX + ", " + adjustmentY);
+//		Log.v(TAG, "adjustment: " + adjustmentX + ", " + adjustmentY);
 		m.setTranslate(originalTranslateX+adjustmentX, originalTranslateY + adjustmentY);
 		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
 
 	}
 
+	public Rect getCropRect() {
+		float[] v = new float[9];
+		matrix.getValues(v);
+		float originalTranslateX = v[Matrix.MTRANS_X];
+		float originalTranslateY = v[Matrix.MTRANS_Y];
+		float finalLeftX = v[Matrix.MTRANS_X];
+		float finalTopY = v[Matrix.MTRANS_Y];
+		float finalScaleFactor = v[Matrix.MSCALE_X];
+		float pixelWidth = bmWidth * finalScaleFactor;
+		float pixelHeight = bmHeight * finalScaleFactor;
+		float finalRightX = finalLeftX + pixelWidth;
+		float finalBottomY = finalTopY + pixelHeight;
+
+		RectF onscreenImageBox = new RectF(finalLeftX, finalTopY, finalRightX, finalBottomY);
+		RectF onscreenCropBox = mViewport;
+
+
+		Log.v(TAG, "translate: " + originalTranslateX + ", " + originalTranslateY + "; scale " + finalScaleFactor);
+
+		RectF cropRect = new RectF(onscreenCropBox);
+		cropRect.offset(-originalTranslateX, -originalTranslateY);//translate
+		float scale = 1/finalScaleFactor;
+		cropRect = new RectF(cropRect.left*scale, cropRect.top*scale, cropRect.right*scale, cropRect.bottom*scale);//then scale
+
+		Log.v(TAG, "onscreenCropBox: " + onscreenCropBox);
+		Log.v(TAG, "imageBox: " + onscreenImageBox);
+
+		//round inward
+		return roundRectIn(cropRect);
+	}
+	private Rect roundRectIn(RectF cropRect) {
+		Rect result = new Rect((int)Math.ceil(cropRect.left), (int)Math.ceil(cropRect.top), (int)Math.floor(cropRect.right), (int)Math.floor(cropRect.bottom));
+		return result;
+	}
 	public void restoreMatrix(Matrix matrix) {
 		this.matrixArgs = matrix;
 	}

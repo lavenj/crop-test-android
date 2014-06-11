@@ -27,4 +27,13 @@
         android:layout_height="wrap_content"
         android:text="Save"/>
 
+    <ImageView
+            android:id="@+id/resultImageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerInside"
+            android:background="#999999"
+            android:visibility="invisible"
+
+            />
 </FrameLayout>
