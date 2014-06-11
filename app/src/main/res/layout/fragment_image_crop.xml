@@ -1,0 +1,30 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.croptest.app.ImageCropFragment"
+    android:clipChildren="false">
+
+  <com.croptest.app.ZoomableViewportImageView
+      android:id="@+id/imageview"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:padding="16dp"/>
+    <!--<it.sephiroth.android.library.imagezoom.ImageViewTouch-->
+        <!--android:id="@+id/imageview"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent"/>-->
+
+    <com.croptest.app.CropOverlayView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp"
+        />
+
+    <Button
+        android:id="@+id/save"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save"/>
+
+</FrameLayout>
