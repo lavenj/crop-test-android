@@ -315,16 +315,22 @@ public class ZoomableViewportImageView extends ImageView {
 		}
 
 
-		if( imageBox.top > snapBox.top ) {
+		//if top and bottom are both in bounds (ie the image is smaller than the box, center us vertically
+		if( imageBox.top > snapBox.top && imageBox.bottom < snapBox.bottom ) {
+			adjustmentY = snapBox.centerY() - imageBox.centerY();
+			Log.v(TAG, "Centering on Y axis.");
+		}
+		else if( imageBox.top > snapBox.top ) {
 			adjustmentY = snapBox.top - imageBox.top;
 		}
 		else if( imageBox.bottom < snapBox.bottom ) {
 			adjustmentY = snapBox.bottom - imageBox.bottom;
 		}
 
-		//if left and right are both in bounds, do nothing
+		//if left and right are both in bounds (ie the image is smaller than the box), center us horizontally
 		if( imageBox.left > snapBox.left && imageBox.right < snapBox.right ) {
-			Log.v(TAG, "No x adjustment needed.");
+			adjustmentX = snapBox.centerX() - imageBox.centerX();
+			Log.v(TAG, "Centering on X axis.");
 		}
 		else if( imageBox.left > snapBox.left ) {
 			//if we are too far to the right, move us left
@@ -337,7 +343,6 @@ public class ZoomableViewportImageView extends ImageView {
 			adjustmentX = Math.min(snapBox.right - imageBox.right, leftOverflow);
 		}
 		Log.v(TAG, "adjustment: " + adjustmentX + ", " + adjustmentY);
-		adjustmentY = 0;
 		m.setTranslate(originalTranslateX+adjustmentX, originalTranslateY + adjustmentY);
 		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
 
