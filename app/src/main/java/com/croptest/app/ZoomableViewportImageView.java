@@ -213,7 +213,7 @@ public class ZoomableViewportImageView extends ImageView {
 		float scale;
 		float scaleX = mViewport.width() / bmWidth;
 		float scaleY = mViewport.height() / bmHeight;
-		scale = Math.max(scaleX, scaleY);
+		scale = Math.min(scaleX, scaleY);
 		matrix.setScale(scale, scale);
 		setImageMatrix(matrix);
 		saveScale = 1f;
@@ -293,12 +293,12 @@ public class ZoomableViewportImageView extends ImageView {
 		float slopX = 0;
 		float slopY = 0;
 		// no need for slop to be bigger than # of extra pixels
-		if (pixelWidth - snapBox.width() < slopX) {
-			slopX = pixelWidth - snapBox.width();
-		}
-		if (pixelHeight - snapBox.height() < slopY) {
-			slopY = pixelHeight - snapBox.height();
-		}
+//		if (pixelWidth - snapBox.width() < slopX) {
+//			slopX = pixelWidth - snapBox.width();
+//		}
+//		if (pixelHeight - snapBox.height() < slopY) {
+//			slopY = pixelHeight - snapBox.height();
+//		}
 
 		RectF imageBox = new RectF(finalLeftX, finalTopY, finalRightX, finalBottomY);
 		snapBox = new RectF(snapBox.left+slopX, snapBox.top+slopY, snapBox.right-slopX, snapBox.bottom-slopY);
@@ -310,9 +310,10 @@ public class ZoomableViewportImageView extends ImageView {
 		Log.v(TAG, "imageBox: " + imageBox);
 
 		if( imageBox.contains(snapBox)) {
-			Log.v(TAG, "No adjustment needed.");
+			Log.v(TAG, "Entirely contained; No adjustment needed.");
 			return;
 		}
+
 
 		if( imageBox.top > snapBox.top ) {
 			adjustmentY = snapBox.top - imageBox.top;
@@ -321,13 +322,22 @@ public class ZoomableViewportImageView extends ImageView {
 			adjustmentY = snapBox.bottom - imageBox.bottom;
 		}
 
-		if( imageBox.left > snapBox.left ) {
-			adjustmentX = snapBox.left - imageBox.left;
+		//if left and right are both in bounds, do nothing
+		if( imageBox.left > snapBox.left && imageBox.right < snapBox.right ) {
+			Log.v(TAG, "No x adjustment needed.");
+		}
+		else if( imageBox.left > snapBox.left ) {
+			//if we are too far to the right, move us left
+			//but keep us snapped to the right edge (don't move by farther than the right overflow)
+			float rightOverflow = imageBox.right - snapBox.right;
+			adjustmentX = Math.max(snapBox.left - imageBox.left, -rightOverflow);
 		}
 		else if( imageBox.right < snapBox.right ) {
-			adjustmentX = snapBox.right - imageBox.right;
+			float leftOverflow = snapBox.left - imageBox.left;
+			adjustmentX = Math.min(snapBox.right - imageBox.right, leftOverflow);
 		}
 		Log.v(TAG, "adjustment: " + adjustmentX + ", " + adjustmentY);
+		adjustmentY = 0;
 		m.setTranslate(originalTranslateX+adjustmentX, originalTranslateY + adjustmentY);
 		m.preScale(finalScaleFactor, finalScaleFactor, 0.0f, 0.0f);
 
