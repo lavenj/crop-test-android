@@ -204,6 +204,7 @@ public class ZoomableViewportImageView extends ImageView {
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        Log.d(TAG, "entering onMeasure");
 
 		width = MeasureSpec.getSize(widthMeasureSpec);
 		height = MeasureSpec.getSize(heightMeasureSpec);
@@ -216,7 +217,7 @@ public class ZoomableViewportImageView extends ImageView {
 		float scaleY = mViewport.height() / bmHeight;
 		scale = Math.max(scaleX, scaleY);
 		matrix.setScale(scale, scale);
-		setImageMatrix(matrix);
+//		setImageMatrix(matrix);
 		saveScale = 1f;
 
 

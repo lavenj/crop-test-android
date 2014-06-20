@@ -1,6 +1,7 @@
 package com.croptest.app;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
@@ -9,7 +10,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -17,23 +17,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-
-import it.sephiroth.android.library.imagezoom.ImageViewTouch;
 
 public class ImageCropFragment extends Fragment {
 
 	private static final String TAG = "ImageCropFragment" ;
 	Matrix matrix;
+    private Uri imageUri;
 
-    public ImageCropFragment() {
-    }
+    public ImageCropFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         if (savedInstanceState != null && savedInstanceState.containsKey("MATRIX")) {
             matrix = new Matrix();
             matrix.setValues(savedInstanceState.getFloatArray("MATRIX"));
@@ -41,6 +40,10 @@ public class ImageCropFragment extends Fragment {
             matrix = new Matrix();
             matrix.setValues(getArguments().getFloatArray("MATRIX"));
         }
+
+        try {
+            imageUri = getArguments().getParcelable("URI");
+        } catch (Exception ex) {}
     }
 
     @Override
@@ -48,26 +51,37 @@ public class ImageCropFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v =  inflater.inflate(R.layout.fragment_image_crop, container, false);
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.karate_karl);
+//        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.karate_karl);
+
+        Bitmap bitmap = null;
+        try {
+            bitmap = BitmapUtils.downSampleBitmap(getActivity(), imageUri);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         final ZoomableViewportImageView imageView = (ZoomableViewportImageView)v.findViewById(R.id.imageview);
         imageView.setImageBitmap(bitmap);
         if (matrix != null) {
             imageView.restoreMatrix(matrix);
         }
 
-			final ImageView resultImageView = (ImageView) v.findViewById(R.id.resultImageView);
-			Log.v(TAG, "resultImageView " + resultImageView);
+        final ImageView resultImageView = (ImageView) v.findViewById(R.id.resultImageView);
+        Log.v(TAG, "resultImageView " + resultImageView);
 
         v.findViewById(R.id.save).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                matrix = imageView.getImageMatrix();
-							Rect cropBox = imageView.getCropRect();
-							Log.v(TAG, "cropBox " + cropBox);
-							InputStream is = getResources().openRawResource(R.drawable.karate_karl);
-//							Bitmap croppedImage = new Bitmap();
-							Bitmap croppedBitmap = decodeRegionCrop(is, cropBox);
-//                ((MainActivity)getActivity()).reloadCroppedImage(matrix);
+                Rect cropBox = imageView.getCropRect();
+                Log.v(TAG, "cropBox " + cropBox);
+
+                InputStream is = null;
+                try {
+                    is = getActivity().getContentResolver().openInputStream(imageUri);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                Bitmap croppedBitmap = decodeRegionCrop(is, cropBox);
 							Log.v(TAG, "croppedBitmap " + croppedBitmap + "; " + croppedBitmap.getWidth() + ", " + croppedBitmap.getHeight());
 							resultImageView.setImageBitmap(croppedBitmap);
 							resultImageView.setVisibility(View.VISIBLE);
@@ -79,9 +93,6 @@ public class ImageCropFragment extends Fragment {
 									resultImageView.setVisibility(View.GONE);
 								}
 							}, 5000);
-
-
-
 						}
         });
 
@@ -92,6 +103,10 @@ public class ImageCropFragment extends Fragment {
 //                new Matrix(), 0.5f, 5.0f);
 //        new ImageView(getActivity()).setImageMatrix();
         return v;
+    }
+
+    private void displayImage() {
+
     }
 
 
@@ -108,7 +123,7 @@ public class ImageCropFragment extends Fragment {
 
 	private Bitmap decodeRegionCrop(InputStream is, Rect rect) {
 		Bitmap croppedImage = null;
-		RotateBitmap mRotateBitmap;
+//		RotateBitmap mRotateBitmap;
 		int mExifRotation = 0;
 //		if (mSourceUri != null) {
 //			mExifRotation = CropUtil.getExifRotation(CropUtil.getFromMediaUri(getActivity().getContentResolver(), mSourceUri));

@@ -10,10 +10,6 @@
       android:layout_width="match_parent"
       android:layout_height="match_parent"
       android:padding="0dp"/>
-    <!--<it.sephiroth.android.library.imagezoom.ImageViewTouch-->
-        <!--android:id="@+id/imageview"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="match_parent"/>-->
 
     <com.croptest.app.CropOverlayView
         android:layout_width="match_parent"

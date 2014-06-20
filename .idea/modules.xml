@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/CropTest.iml" filepath="$PROJECT_DIR$/CropTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/crop-test-android.iml" filepath="$PROJECT_DIR$/crop-test-android.iml" />
     </modules>
   </component>
 </project>
